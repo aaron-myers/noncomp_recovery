@@ -3,7 +3,7 @@ library(rstan)
 options(mc.cores = parallel::detectCores())
 rstan_options(auto_write=T)
 library(mvtnorm)
-library(bayesplot)
+
 setwd("C:/Users/Aaron/Dropbox/NonComp/New_10-20")
 #setwd("C:\\Users\\ajm045\\Dropbox\\6553_ESRM-AdvancedMultivariate\\Project\\Code_Final")
 ThreePM=stan_model(file="3PM2.stan")
@@ -15,31 +15,44 @@ ThreePM=stan_model(file="3PM2.stan")
 #                                                        3000x3x2x2=36000  + 120x3x2x2+50x3x2x2=2040x3=6120
 #                                                        1500x3x2x2=18000
 #                                                         750x3x2x2= 9000                                   69156
-nitems_list = list(20)
-npers_list = list(3000)
 
 ##############################################################################
 ###### Data Generation ######
 ### returns list for Stan ###
 
-sim_Bayes=function(nsim){
+sim_Bayes=function(nsim, r_, mrs_prop){
   for(J in nitems_list){
     for(N in npers_list){
       for(n in 1:nsim){
+        
+        if(r_=="low"){
+          r_mt <- r_te <- 0.20
+          r_me <- -1*r_mt
+        }else{
+          r_mt <- r_te <- 0.50
+          r_me <- -1*r_mt
+        }
+        
         t_start=proc.time()
         set.seed(n)
-        theta=rmvnorm(N,mean=c(0,0,0),sigma=matrix(c( 1.00,0.50,-0.50,                # MOD CORRELATION
-                                                      0.50,1.00, 0.50,
-                                                     -0.50,0.50, 1.00),
+        theta=rmvnorm(N,mean=c(0,0,0),sigma=matrix(c( 1.00,r_mt,r_me,                # MOD CORRELATION
+                                                      r_mt,1.00,r_te,
+                                                      r_me,r_te,1.00),
                                                    ncol=3,nrow=3,byrow=T))  
         am=runif(J,0.50,3.0)
         at=runif(J,0.50,3.0)
         ae=runif(J,0.50,3.0)
         
         min=-2.5; max=2.5;                  # truncation of b_t and b_e
-#       min_m=-0.3; max_m=1.2; mean_m=0.45                                      # 38.0% - High PROPORTION MRS (approximately normal)
-#       min_m=0.6; max_m=2.1; mean_m=1.35                                       # 20.0% - Mid PROPORTION MRS (approximately uniform)
-        min_m=1.25; max_m=2.75; mean_m=2.0                                      # 11.0% - Low PROPORTION MRS (MACH-V)
+        
+        if(mrs_prop=="low"){
+          min_m=1.25; max_m=2.75; mean_m=2.0                                      # 11.0% - Low PROPORTION MRS (MACH-V)
+        }else if(mrs_prop=="mid"){
+          min_m=0.6; max_m=2.1; mean_m=1.35                                       # 20.0% - Mid PROPORTION MRS (approximately uniform)
+        }else{
+          min_m=-0.3; max_m=1.2; mean_m=0.45                                      # 38.0% - High PROPORTION MRS (approximately normal)
+        }
+
         bm=qnorm(pnorm(min_m,mean_m,sqrt(0.35))+runif(J)*(pnorm(max_m,mean_m,sqrt(0.35))-pnorm(min_m,mean_m,sqrt(0.35))),mean_m,sqrt(0.35))
         bt=qnorm(pnorm(min,0,sqrt(1.5))+runif(J)*(pnorm(max,0,sqrt(1.5))-pnorm(min,0,sqrt(1.5))),0,sqrt(1.5))  # N(0,sqrt(1.5)) trunc[-2.5,2.5]
         be=qnorm(pnorm(min,0,sqrt(1.5))+runif(J)*(pnorm(max,0,sqrt(1.5))-pnorm(min,0,sqrt(1.5))),0,sqrt(1.5))
@@ -82,10 +95,10 @@ sim_Bayes=function(nsim){
         fit=sampling(ThreePM,
                      seed=11,
                      data=d1,
-                     chains=4,
+                     chains=1,#4,
                      cores=4,
-                     warmup=150,
-                     iter=1000,
+                     warmup=50,#150,
+                     iter=100,#1000,
                      pars=c("lower_chol"),
                      include=F,
                      refresh=-1)
@@ -99,10 +112,9 @@ sim_Bayes=function(nsim){
         tru=c(mrs=theta[,1], toi=theta[,2], ers=theta[,3],
               a_m=am[1:J], a_t=at[1:J], a_e=ae[1:J],
               d_m=bm[1:J], d_t=bt[1:J], d_e=be[1:J],
-              r_mt=0.20, r_me=-0.20, r_te=0.20)                                   # SPECIFY TRUE CORRELATIONS (LOW)
-#             r_mt=0.50, r_me=-0.50, r_mt=0.50)                                   # SPECIFY TRUE CORRELATIONS (HIGH)
+              r_mt=r_mt, r_me=r_me, r_te=r_te)
 
-        result=data.frame(sum,tru,nsim=n,pers=N,items=J,MRS_prop="low",theta_corr="mod",est="Bayes")
+        result=data.frame(sum,tru,nsim=n,pers=N,items=J,MRS_prop=mrs_prop,theta_corr=r_,est="Bayes")
         rownames(result) <- c(paste0("mrs",1:N),paste0("toi",1:N),paste0("ers",1:N),
                               paste0("a_m",1:J),paste0("a_t",1:J),paste0("a_e",1:J),
                               paste0("d_m",1:J),paste0("d_t",1:J),paste0("d_e",1:J),"r_mt","r_me","r_te")
@@ -127,77 +139,14 @@ sim_Bayes=function(nsim){
   return(results)
 }
 
+R="low"                  # low = .20, mod = .50 
+M_prop="low"             # low, mid, high
+nitems_list = list(5)
+npers_list = list(100)
 
-sim_out = sim_Bayes(nsim=200)
+sim_out = sim_Bayes(nsim=2, r_=R , mrs_prop=M_prop)
 colnames(sim_out) <- c("mean","se_mean","sd","p025","p20","p80","p975","ESS","Rhat","true","nsim","pers","items","MRS_prop","theta_corr","est")
-write.csv(sim_out,"mod-corr_low-MRS_3000_20.csv")
 
-hist(bm)
-mean(m$y_m)
-min(bm)
-max(bm)
-mean(bm)
-sd(bm)
+path = "C:/Users/Aaron/Dropbox/NonComp/New_10-20/Output"
 
-plogis(-2)
-
-head(sum)
-table(sim_out$nsim)
-table(sim_out$items)
-table(sim_out$pers)
-
-results$bias=results$mean-results$true
-results$bias2=results$bias^2
-results$abs_bias=abs(results$bias)
-results$abs_relbias=abs(results$bias)/results$tru
-
-item_parms=results[(N*3+1):nrow(results),]
-
-print(fit, pars=c(paste0("am")), digits=3)  
-print(fit, pars=c(paste0("at")), digits=3)  
-print(fit, pars=c(paste0("ae")), digits=3)  
-print(fit, pars=c(paste0("dm")), digits=3)  
-print(fit, pars=c(paste0("dt")), digits=3)  
-print(fit, pars=c(paste0("de")), digits=3) 
-print(fit, pars=c("theta_corr[1,2]","theta_corr[1,3]","theta_corr[2,3]")) # MRS-TOI; MRS-ERS; TOI-ERS
-
-plot(fit, plotfun = "rhat", pars = c(paste0("theta[",1:N,",1]"))) + ggtitle("MRS Theta Rhat")
-plot(fit, plotfun = "rhat", pars = c(paste0("theta[",1:N,",2]"))) + ggtitle("TOI Theta Rhat")
-plot(fit, plotfun = "rhat", pars = c(paste0("theta[",1:N,",3]"))) + ggtitle("ERS Theta Rhat")
-
-plot(fit, plotfun = "mcse", pars = c("am","at","ae","dm","dt","dm"))
-plot(fit, plotfun = "mcse", pars = c("theta"))
-
-plot(fit, plotfun = "dens", pars = c(paste0("am")), separate_chains = T, nrow = 2) + ggtitle("MRS Discrimination")
-plot(fit, plotfun = "dens", pars = c(paste0("at")), separate_chains = T, nrow = 2) + ggtitle("TOI Discrimination")
-plot(fit, plotfun = "dens", pars = c(paste0("ae")), separate_chains = T, nrow = 2) + ggtitle("ERS Discrimination")
-plot(fit, plotfun = "dens", pars = c(paste0("dm")), separate_chains = T, nrow = 2) + ggtitle("MRS Difficulty")
-plot(fit, plotfun = "dens", pars = c(paste0("de")), separate_chains = T, nrow = 2) + ggtitle("TOI Difficulty")
-plot(fit, plotfun = "dens", pars = c(paste0("dm")), separate_chains = T, nrow = 2) + ggtitle("ERS Difficulty")
-
-plot(fit, plotfun = "trace",pars = c(paste0("am")), inc_warmup = T, nrow = 5) + ggtitle("MRS Discrimination")
-plot(fit, plotfun = "trace",pars = c(paste0("at")), inc_warmup = T, nrow = 5) + ggtitle("TOI Discrimination")
-plot(fit, plotfun = "trace",pars = c(paste0("ae")), inc_warmup = T, nrow = 5) + ggtitle("ERS Discrimination")
-plot(fit, plotfun = "trace",pars = c(paste0("dm")), inc_warmup = T, nrow = 5) + ggtitle("MRS Difficulty")
-plot(fit, plotfun = "trace",pars = c(paste0("dt")), inc_warmup = T, nrow = 5) + ggtitle("TOI Difficulty")
-plot(fit, plotfun = "trace",pars = c(paste0("de")), inc_warmup = T, nrow = 5) + ggtitle("ERS Difficulty")
-
-plot(fit, plotfun = "ac", pars = c(paste0("am")), separate_chains = F, nrow = 5) + ggtitle("MRS Discrimination")
-plot(fit, plotfun = "ac", pars = c(paste0("at")), separate_chains = F, nrow = 5) + ggtitle("TOI Discrimination")
-plot(fit, plotfun = "ac", pars = c(paste0("ae")), separate_chains = F, nrow = 5) + ggtitle("ERS Discrimination")
-plot(fit, plotfun = "ac", pars = c(paste0("dm")), separate_chains = F, nrow = 5) + ggtitle("MRS Difficulty")
-plot(fit, plotfun = "ac", pars = c(paste0("dt")), separate_chains = F, nrow = 5) + ggtitle("TOI Difficulty")
-plot(fit, plotfun = "ac", pars = c(paste0("de")), separate_chains = F, nrow = 5) + ggtitle("ERS Difficulty")
-
-mcmc_rank_hist(fit, pars = c(paste0("am[",1:(J/2),"]")), ref_line = T) + ggtitle("MRS Discrimination")
-mcmc_rank_hist(fit, pars = c(paste0("am[",(J/2+1):J,"]")), ref_line = T) + ggtitle("MRS Discrimination")
-mcmc_rank_hist(fit, pars = c(paste0("at[",1:(J/2),"]")), ref_line = T) + ggtitle("TOI Discrimination")
-mcmc_rank_hist(fit, pars = c(paste0("at[",(J/2+1):J,"]")), ref_line = T) + ggtitle("TOI Discrimination")
-mcmc_rank_hist(fit, pars = c(paste0("ae[",1:(J/2),"]")), ref_line = T) + ggtitle("ERS Discrimination")
-mcmc_rank_hist(fit, pars = c(paste0("ae[",11:20,"]")), ref_line = T) + ggtitle("ERS Discrimination")
-mcmc_rank_hist(fit, pars = c(paste0("dm[",(J/2+1):J,"]")), ref_line = T) + ggtitle("MRS Difficulty")
-mcmc_rank_hist(fit, pars = c(paste0("dm[",11:20,"]")), ref_line = T) + ggtitle("MRS Difficulty")
-mcmc_rank_hist(fit, pars = c(paste0("dt[",(J/2+1):J,"]")), ref_line = T) + ggtitle("TOI Difficulty")
-mcmc_rank_hist(fit, pars = c(paste0("dt[",11:20,"]")), ref_line = T) + ggtitle("TOI Difficulty")
-mcmc_rank_hist(fit, pars = c(paste0("de[",(J/2+1):J,"]")), ref_line = T) + ggtitle("ERS Difficulty")
-mcmc_rank_hist(fit, pars = c(paste0("de[",11:20,"]")), ref_line = T) + ggtitle("ERS Difficulty")
+write.csv(sim_out,paste0(path,"/",R,"-corr_",M_prop,"-MRS_",npers_list,"_",nitems_list,".csv"))
