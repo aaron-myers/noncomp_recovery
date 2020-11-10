@@ -1,0 +1,51 @@
+
+library(bayesplot)
+
+print(fit, pars=c(paste0("am")), digits=3)  
+print(fit, pars=c(paste0("at")), digits=3)  
+print(fit, pars=c(paste0("ae")), digits=3)  
+print(fit, pars=c(paste0("dm")), digits=3)  
+print(fit, pars=c(paste0("dt")), digits=3)  
+print(fit, pars=c(paste0("de")), digits=3) 
+print(fit, pars=c("theta_corr[1,2]","theta_corr[1,3]","theta_corr[2,3]")) # MRS-TOI; MRS-ERS; TOI-ERS
+
+plot(fit, plotfun = "rhat", pars = c(paste0("theta[",1:N,",1]"))) + ggtitle("MRS Theta Rhat")
+plot(fit, plotfun = "rhat", pars = c(paste0("theta[",1:N,",2]"))) + ggtitle("TOI Theta Rhat")
+plot(fit, plotfun = "rhat", pars = c(paste0("theta[",1:N,",3]"))) + ggtitle("ERS Theta Rhat")
+
+plot(fit, plotfun = "mcse", pars = c("am","at","ae","dm","dt","dm"))
+plot(fit, plotfun = "mcse", pars = c("theta"))
+
+plot(fit, plotfun = "dens", pars = c(paste0("am")), separate_chains = T, nrow = 2) + ggtitle("MRS Discrimination")
+plot(fit, plotfun = "dens", pars = c(paste0("at")), separate_chains = T, nrow = 2) + ggtitle("TOI Discrimination")
+plot(fit, plotfun = "dens", pars = c(paste0("ae")), separate_chains = T, nrow = 2) + ggtitle("ERS Discrimination")
+plot(fit, plotfun = "dens", pars = c(paste0("dm")), separate_chains = T, nrow = 2) + ggtitle("MRS Difficulty")
+plot(fit, plotfun = "dens", pars = c(paste0("de")), separate_chains = T, nrow = 2) + ggtitle("TOI Difficulty")
+plot(fit, plotfun = "dens", pars = c(paste0("dm")), separate_chains = T, nrow = 2) + ggtitle("ERS Difficulty")
+
+plot(fit, plotfun = "trace",pars = c(paste0("am")), inc_warmup = T, nrow = 5) + ggtitle("MRS Discrimination")
+plot(fit, plotfun = "trace",pars = c(paste0("at")), inc_warmup = T, nrow = 5) + ggtitle("TOI Discrimination")
+plot(fit, plotfun = "trace",pars = c(paste0("ae")), inc_warmup = T, nrow = 5) + ggtitle("ERS Discrimination")
+plot(fit, plotfun = "trace",pars = c(paste0("dm")), inc_warmup = T, nrow = 5) + ggtitle("MRS Difficulty")
+plot(fit, plotfun = "trace",pars = c(paste0("dt")), inc_warmup = T, nrow = 5) + ggtitle("TOI Difficulty")
+plot(fit, plotfun = "trace",pars = c(paste0("de")), inc_warmup = T, nrow = 5) + ggtitle("ERS Difficulty")
+
+plot(fit, plotfun = "ac", pars = c(paste0("am")), separate_chains = F, nrow = 5) + ggtitle("MRS Discrimination")
+plot(fit, plotfun = "ac", pars = c(paste0("at")), separate_chains = F, nrow = 5) + ggtitle("TOI Discrimination")
+plot(fit, plotfun = "ac", pars = c(paste0("ae")), separate_chains = F, nrow = 5) + ggtitle("ERS Discrimination")
+plot(fit, plotfun = "ac", pars = c(paste0("dm")), separate_chains = F, nrow = 5) + ggtitle("MRS Difficulty")
+plot(fit, plotfun = "ac", pars = c(paste0("dt")), separate_chains = F, nrow = 5) + ggtitle("TOI Difficulty")
+plot(fit, plotfun = "ac", pars = c(paste0("de")), separate_chains = F, nrow = 5) + ggtitle("ERS Difficulty")
+
+mcmc_rank_hist(fit, pars = c(paste0("am[",1:(J/2),"]")), ref_line = T) + ggtitle("MRS Discrimination")
+mcmc_rank_hist(fit, pars = c(paste0("am[",(J/2+1):J,"]")), ref_line = T) + ggtitle("MRS Discrimination")
+mcmc_rank_hist(fit, pars = c(paste0("at[",1:(J/2),"]")), ref_line = T) + ggtitle("TOI Discrimination")
+mcmc_rank_hist(fit, pars = c(paste0("at[",(J/2+1):J,"]")), ref_line = T) + ggtitle("TOI Discrimination")
+mcmc_rank_hist(fit, pars = c(paste0("ae[",1:(J/2),"]")), ref_line = T) + ggtitle("ERS Discrimination")
+mcmc_rank_hist(fit, pars = c(paste0("ae[",11:20,"]")), ref_line = T) + ggtitle("ERS Discrimination")
+mcmc_rank_hist(fit, pars = c(paste0("dm[",(J/2+1):J,"]")), ref_line = T) + ggtitle("MRS Difficulty")
+mcmc_rank_hist(fit, pars = c(paste0("dm[",11:20,"]")), ref_line = T) + ggtitle("MRS Difficulty")
+mcmc_rank_hist(fit, pars = c(paste0("dt[",(J/2+1):J,"]")), ref_line = T) + ggtitle("TOI Difficulty")
+mcmc_rank_hist(fit, pars = c(paste0("dt[",11:20,"]")), ref_line = T) + ggtitle("TOI Difficulty")
+mcmc_rank_hist(fit, pars = c(paste0("de[",(J/2+1):J,"]")), ref_line = T) + ggtitle("ERS Difficulty")
+mcmc_rank_hist(fit, pars = c(paste0("de[",11:20,"]")), ref_line = T) + ggtitle("ERS Difficulty")
