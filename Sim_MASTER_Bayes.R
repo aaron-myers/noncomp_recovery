@@ -5,20 +5,10 @@ rstan_options(auto_write=T)
 library(mvtnorm)
 
 setwd("C:/Users/Aaron/Dropbox/NonComp/New_10-20")
-#setwd("C:\\Users\\ajm045\\Dropbox\\6553_ESRM-AdvancedMultivariate\\Project\\Code_Final")
 ThreePM=stan_model(file="3PM2.stan")
 
-# N=150
-# J=10
-# seed=11
-# n=1
-#                                                        3000x3x2x2=36000  + 120x3x2x2+50x3x2x2=2040x3=6120
-#                                                        1500x3x2x2=18000
-#                                                         750x3x2x2= 9000                                   69156
-
 ##############################################################################
-###### Data Generation ######
-### returns list for Stan ###
+###### Simulation Function ######
 
 sim_Bayes=function(nsim, r_, mrs_prop){
   for(J in nitems_list){
