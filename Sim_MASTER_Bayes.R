@@ -95,10 +95,10 @@ sim_Bayes=function(nsim, r_, mrs_prop){
         fit=sampling(ThreePM,
                      seed=11,
                      data=d1,
-                     chains=1,#4,
+                     chains=4,
                      cores=4,
-                     warmup=50,#150,
-                     iter=100,#1000,
+                     warmup=150,
+                     iter=1000,
                      pars=c("lower_chol"),
                      include=F,
                      refresh=-1)
@@ -141,8 +141,8 @@ sim_Bayes=function(nsim, r_, mrs_prop){
 
 R="low"                  # low = .20, mod = .50 
 M_prop="low"             # low, mid, high
-nitems_list = list(5)
-npers_list = list(100)
+nitems_list = list(20)
+npers_list = list(3000)
 
 sim_out = sim_Bayes(nsim=2, r_=R , mrs_prop=M_prop)
 colnames(sim_out) <- c("mean","se_mean","sd","p025","p20","p80","p975","ESS","Rhat","true","nsim","pers","items","MRS_prop","theta_corr","est")
