@@ -134,7 +134,7 @@ M_prop="low"             # low, mid, high
 nitems_list = list(20)
 npers_list = list(3000)
 
-sim_out = sim_Bayes(nsim=2, r_=R , mrs_prop=M_prop)
+sim_out = sim_Bayes(nsim=200, r_=R , mrs_prop=M_prop)
 colnames(sim_out) <- c("mean","se_mean","sd","p025","p20","p80","p975","ESS","Rhat","true","nsim","pers","items","MRS_prop","theta_corr","est")
 
 path = "C:/Users/Aaron/Dropbox/NonComp/New_10-20/Output"
