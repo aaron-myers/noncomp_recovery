@@ -139,4 +139,4 @@ colnames(sim_out) <- c("mean","se_mean","sd","p025","p20","p80","p975","ESS","Rh
 
 path = "C:/Users/Aaron/Dropbox/NonComp/New_10-20/Output"
 
-write.csv(sim_out,paste0(path,"/",R,"-corr_",M_prop,"-MRS_",npers_list,"_",nitems_list,".csv"))
+write.csv(sim_out,paste0(path,"/",R,"-corr_",M_prop,"-MRS_",npers_list,"_",nitems_list,"_Bayes",".csv"))
