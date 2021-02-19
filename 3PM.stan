@@ -57,15 +57,15 @@ model{
     target += multi_normal_lpdf(theta | mu_theta, quad_form_diag(theta_corr, sigma_theta));
     
   for(nm in 1:Nm){
-	  	target += bernoulli_logit_lpmf(Ym[nm] | am[jjm[nm]] .* theta[iim[nm],1] + dm[jjm[nm]]); 
+	  	target += bernoulli_logit_lpmf(Ym[nm] | am[jjm[nm]] * theta[iim[nm],1] - dm[jjm[nm]]); 
   }
   
   for(nt in 1:Nt){
-	  	target += bernoulli_logit_lpmf(Yt[nt] | at[jjt[nt]] .* theta[iit[nt],2] + dt[jjt[nt]]); 
+	  	target += bernoulli_logit_lpmf(Yt[nt] | at[jjt[nt]] * theta[iit[nt],2] - dt[jjt[nt]]); 
   }
   
   for(ne in 1:Ne){
-	  	target += bernoulli_logit_lpmf(Ye[ne] | ae[jje[ne]] .* theta[iie[ne],3] + de[jje[ne]]); 
+	  	target += bernoulli_logit_lpmf(Ye[ne] | ae[jje[ne]] * theta[iie[ne],3] - de[jje[ne]]); 
   }
 }
 
