@@ -2,6 +2,7 @@
 library(stringr)
 library(xlsx)
 library(plyr)
+library(data.table)
 
 setwd("C:/Users/Aaron/Dropbox/NonComp/New_10-20/Output/MLE_OUTPUT")
 
@@ -31,26 +32,26 @@ corr_func <- function(X){
 }
 
 ## THETA PARMS
-m1$mrs <- ifelse(str_detect(m1$X,"mrs"),1,0)
-m1$toi <- ifelse(str_detect(m1$X,"toi"),1,0)
-m1$ers <- ifelse(str_detect(m1$X,"ers"),1,0)
+m1$mrs <- ifelse(str_detect(m1$V1,"mrs"),1,0)
+m1$toi <- ifelse(str_detect(m1$V1,"toi"),1,0)
+m1$ers <- ifelse(str_detect(m1$V1,"ers"),1,0)
 
 ## ITEM PARMS
-m1$am <- ifelse(str_detect(m1$X,"a_m"),1,0)
-m1$at <- ifelse(str_detect(m1$X,"a_t"),1,0)
-m1$ae <- ifelse(str_detect(m1$X,"a_e"),1,0)
-m1$dm <- ifelse(str_detect(m1$X,"d_m"),1,0)
-m1$dt <- ifelse(str_detect(m1$X,"d_t"),1,0)
-m1$de <- ifelse(str_detect(m1$X,"d_e"),1,0)
+m1$am <- ifelse(str_detect(m1$V1,"a_m"),1,0)
+m1$at <- ifelse(str_detect(m1$V1,"a_t"),1,0)
+m1$ae <- ifelse(str_detect(m1$V1,"a_e"),1,0)
+m1$dm <- ifelse(str_detect(m1$V1,"d_m"),1,0)
+m1$dt <- ifelse(str_detect(m1$V1,"d_t"),1,0)
+m1$de <- ifelse(str_detect(m1$V1,"d_e"),1,0)
 
 ## CORRELATION
-m1$r <- ifelse(str_detect(m1$X,"r_m"),1,0)
+m1$r <- ifelse(str_detect(m1$V1,"r_m"),1,0)
 
 ####################################################################################
 ## SUMMARIZE THETA by SUBSET
-mrs <- m1[which(m1$mrs==1), ]
-toi <- m1[which(m1$toi==1), ]
-ers <- m1[which(m1$ers==1), ]
+mrs <- m1[which(str_detect(m1$X,"mrs")), ]
+toi <- m1[which(str_detect(m1$X,"toi")), ]
+ers <- m1[which(str_detect(m1$X,"ers")), ]
 
 ########################################################################################################################################################################
 #####  UNCONDITIONAL THETA  ############################################################################################################################################
@@ -128,17 +129,14 @@ write.xlsx(ers2, "noncomp_MLE_results.xlsx", sheetName="ERS", col.names=T, row.n
 #####  CONDITIONAL THETA  ##############################################################################################################################################
 ########################################################################################################################################################################
 
-mrs <- mrs[order(mrs$pers,mrs$items,mrs$MRS_prop,mrs$theta_corr,mrs$true), ]
 mrs$cat <- cut(mrs$true, 
                breaks=c(-Inf,-1.75,-1.25,-0.75,-0.25,0.25,0.75,1.25,1.75,Inf),
                labels=c(  -2.0, -1.5, -1.0, -0.5,  0.0, 0.5, 1.0, 1.5, 2.0))
 
-toi <- toi[order(toi$pers,toi$items,toi$MRS_prop,mrs$theta_corr,toi$true), ]
 toi$cat <- cut(toi$true, 
                breaks=c(-Inf,-1.75,-1.25,-0.75,-0.25,0.25,0.75,1.25,1.75,Inf),
                labels=c(-2,-1.5,-1,-.5,0,.5,1,1.5,2))
 
-ers <- ers[order(ers$pers,ers$items,ers$MRS_prop,mrs$theta_corr,ers$true), ]
 ers$cat <- cut(ers$true, 
                breaks=c(-Inf,-1.75,-1.25,-0.75,-0.25,0.25,0.75,1.25,1.75,Inf),
                labels=c(-2,-1.5,-1,-.5,0,.5,1,1.5,2))
@@ -216,13 +214,13 @@ write.xlsx(ersc2, "noncomp_MLE_results.xlsx", sheetName="cond_ERS", col.names=T,
 ########################################################################################################################################################################
 ########################################################################################################################################################################
 ## SUMMARIZE ITEM PARAMETER by SUBSET
-am <- m1[which(m1$am==1), ]
-at <- m1[which(m1$at==1), ]
-ae <- m1[which(m1$ae==1), ]
+am <- m1[which(str_detect(m1$X,"a_m")), ]
+at <- m1[which(str_detect(m1$X,"a_t")), ]
+ae <- m1[which(str_detect(m1$X,"a_e")), ]
 
-dm <- m1[which(m1$dm==1), ]
-dt <- m1[which(m1$dt==1), ]
-de <- m1[which(m1$de==1), ]
+dm <- m1[which(str_detect(m1$X,"d_m")), ]
+dt <- m1[which(str_detect(m1$X,"d_t")), ]
+de <- m1[which(str_detect(m1$X,"d_e")), ]
 
 ####################################################################################
 ## MRS ITEM PARAMETER
@@ -361,3 +359,42 @@ de2 <- de2[order(de2$pers,de2$items,de2$prop,de2$corr), ]
 write.xlsx(dm2, "noncomp_MLE_results.xlsx", sheetName="dm", col.names=T, row.names=F, append=T)
 write.xlsx(dt2, "noncomp_MLE_results.xlsx", sheetName="dt", col.names=T, row.names=F, append=T)
 write.xlsx(de2, "noncomp_MLE_results.xlsx", sheetName="de", col.names=T, row.names=F, append=T)
+
+####################################################################################
+## MERGE and OUTPUT ITEM PARAMETER BIAS
+
+head(am)
+str(am)
+
+drop <- c("mrs","toi","ers","am","at","ae","dm","dt","de","r")
+
+am <- as.data.frame(am)[,!(names(am) %in% drop)]
+at <- as.data.frame(at)[,!(names(at) %in% drop)]
+ae <- as.data.frame(ae)[,!(names(ae) %in% drop)]
+dm <- as.data.frame(dm)[,!(names(dm) %in% drop)]
+dt <- as.data.frame(dt)[,!(names(dt) %in% drop)]
+de <- as.data.frame(de)[,!(names(de) %in% drop)]
+am <- am[order(am$pers,am$items,am$MRS_prop,am$theta_corr), ]
+at <- at[order(at$pers,at$items,at$MRS_prop,at$theta_corr), ]
+ae <- ae[order(ae$pers,ae$items,ae$MRS_prop,ae$theta_corr), ]
+dm <- dm[order(dm$pers,dm$items,dm$MRS_prop,dm$theta_corr), ]
+dt <- dt[order(dt$pers,dt$items,dt$MRS_prop,dt$theta_corr), ]
+de <- de[order(de$pers,de$items,de$MRS_prop,de$theta_corr), ]
+
+mrs <- as.data.frame(mrs)[,!(names(mrs) %in% drop)]
+toi <- as.data.frame(toi)[,!(names(toi) %in% drop)]
+ers <- as.data.frame(ers)[,!(names(ers) %in% drop)]
+mrs <- mrs[order(mrs$pers,mrs$items,mrs$MRS_prop,mrs$theta_corr), ]
+toi <- toi[order(toi$pers,toi$items,toi$MRS_prop,toi$theta_corr), ]
+ers <- ers[order(ers$pers,ers$items,ers$MRS_prop,ers$theta_corr), ]
+
+fwrite(am, "noncomp_MLE_am_bias.csv", sep=",", col.names=T, row.names=F)
+fwrite(at, "noncomp_MLE_at_bias.csv", sep=",", col.names=T, row.names=F)
+fwrite(ae, "noncomp_MLE_ae_bias.csv", sep=",", col.names=T, row.names=F)
+fwrite(dm, "noncomp_MLE_dm_bias.csv", sep=",", col.names=T, row.names=F)
+fwrite(dt, "noncomp_MLE_dt_bias.csv", sep=",", col.names=T, row.names=F)
+fwrite(de, "noncomp_MLE_de_bias.csv", sep=",", col.names=T, row.names=F)
+
+fwrite(mrs, "noncomp_MLE_mrs_bias.csv", sep=",", col.names=T, row.names=F)
+fwrite(toi, "noncomp_MLE_toi_bias.csv", sep=",", col.names=T, row.names=F)
+fwrite(ers, "noncomp_MLE_ers_bias.csv", sep=",", col.names=T, row.names=F)

@@ -2,6 +2,7 @@
 library(stringr)
 library(xlsx)
 library(plyr)
+library(data.table)
 
 setwd("C:/Users/Aaron/Dropbox/NonComp/New_10-20/Output")
 
@@ -11,19 +12,22 @@ setwd("C:/Users/Aaron/Dropbox/NonComp/New_10-20/Output")
 B_files <- list.files(pattern="*.csv", full.names=T)
 
 # READ FILES
-B_list <- sapply(B_files, read.csv, simplify=F) 
+# B_list <- sapply(B_files, fread, simplify=F) 
+B_list <- lapply(B_files, fread, sep=",")
 
 # CONVERT TO DATAFRAME
-b1 <- do.call(rbind.data.frame, B_list); row.names(b1) <- NULL
+# b1 <- do.call(rbind.data.frame, B_list); row.names(b1) <- NULL
+b1 <- rbindlist(B_list, use.names=T, fill=T); row.names(b1) <- NULL
 head(b1)
 
 rm(B_files,B_list)
  
 ## RECOVERY INDICES
+
 b1$bias <- b1$mean-b1$true
 b1$absbias <- abs(b1$bias)
 b1$bias2 <- b1$bias^2
-b1$cov <- ifelse(b1$p025 < b1$true & b1$true < b1$p975,1,0)
+b1$cov <- fifelse(b1$p025 < b1$true & b1$true < b1$p975,1,0)
 
 ## CORRELATION FUNCTION USED BELOW
 corr_func <- function(X){
@@ -31,26 +35,30 @@ corr_func <- function(X){
 }
 
 ## THETA PARMS
-b1$mrs <- ifelse(str_detect(b1$X,"mrs"),1,0)
-b1$toi <- ifelse(str_detect(b1$X,"toi"),1,0)
-b1$ers <- ifelse(str_detect(b1$X,"ers"),1,0)
+# b1$mrs <- ifelse(str_detect(b1$V1,"mrs"),1,0)
+# b1$toi <- ifelse(str_detect(b1$V1,"toi"),1,0)
+# b1$ers <- ifelse(str_detect(b1$V1,"ers"),1,0)
 
 ## ITEM PARMS
-b1$am <- ifelse(str_detect(b1$X,"a_m"),1,0)
-b1$at <- ifelse(str_detect(b1$X,"a_t"),1,0)
-b1$ae <- ifelse(str_detect(b1$X,"a_e"),1,0)
-b1$dm <- ifelse(str_detect(b1$X,"d_m"),1,0)
-b1$dt <- ifelse(str_detect(b1$X,"d_t"),1,0)
-b1$de <- ifelse(str_detect(b1$X,"d_e"),1,0)
+# b1$am <- fifelse(str_detect(b1$V1,"a_m"),1,0)
+# b1$at <- ifelse(str_detect(b1$V1,"a_t"),1,0)
+# b1$ae <- ifelse(str_detect(b1$V1,"a_e"),1,0)
+# b1$dm <- ifelse(str_detect(b1$V1,"d_m"),1,0)
+# b1$dt <- ifelse(str_detect(b1$V1,"d_t"),1,0)
+# b1$de <- ifelse(str_detect(b1$V1,"d_e"),1,0)
 
 ## CORRELATION
-b1$r <- ifelse(str_detect(b1$X,"r_m"),1,0)
+# b1$r <- ifelse(str_detect(b1$V1,"r_m"),1,0)
 
 ####################################################################################
 ## SUMMARIZE THETA by SUBSET
-mrs <- b1[which(b1$mrs==1), ]
-toi <- b1[which(b1$toi==1), ]
-ers <- b1[which(b1$ers==1), ]
+mrs <- b1[which(str_detect(b1$V1,"mrs")), ]
+toi <- b1[which(str_detect(b1$V1,"toi")), ]
+ers <- b1[which(str_detect(b1$V1,"ers")), ]
+
+# mrs <- b1[which(b1$mrs==1), ]
+# toi <- b1[which(b1$toi==1), ]
+# ers <- b1[which(b1$ers==1), ]
 
 ########################################################################################################################################################################
 #####  UNCONDITIONAL THETA  ############################################################################################################################################
@@ -120,6 +128,7 @@ mrs2 <- mrs2[order(mrs2$pers,mrs2$items,mrs2$prop,mrs2$corr), ]
 toi2 <- toi2[order(toi2$pers,toi2$items,toi2$prop,toi2$corr), ]
 ers2 <- ers2[order(ers2$pers,ers2$items,ers2$prop,ers2$corr), ]
 
+setwd("C:/Users/Aaron/Dropbox/NonComp/New_10-20/Results")
 write.xlsx(mrs2, "noncomp_Bayes_results.xlsx", sheetName="MRS", col.names=T, row.names=F, append=T)
 write.xlsx(toi2, "noncomp_Bayes_results.xlsx", sheetName="TOI", col.names=T, row.names=F, append=T)
 write.xlsx(ers2, "noncomp_Bayes_results.xlsx", sheetName="ERS", col.names=T, row.names=F, append=T)
@@ -128,17 +137,14 @@ write.xlsx(ers2, "noncomp_Bayes_results.xlsx", sheetName="ERS", col.names=T, row
 #####  CONDITIONAL THETA  ##############################################################################################################################################
 ########################################################################################################################################################################
 
-mrs <- mrs[order(mrs$pers,mrs$items,mrs$MRS_prop,mrs$theta_corr,mrs$true), ]
 mrs$cat <- cut(mrs$true, 
                breaks=c(-Inf,-1.75,-1.25,-0.75,-0.25,0.25,0.75,1.25,1.75,Inf),
                labels=c(  -2.0, -1.5, -1.0, -0.5,  0.0, 0.5, 1.0, 1.5, 2.0))
 
-toi <- toi[order(toi$pers,toi$items,toi$MRS_prop,mrs$theta_corr,toi$true), ]
 toi$cat <- cut(toi$true, 
                breaks=c(-Inf,-1.75,-1.25,-0.75,-0.25,0.25,0.75,1.25,1.75,Inf),
                labels=c(-2,-1.5,-1,-.5,0,.5,1,1.5,2))
 
-ers <- ers[order(ers$pers,ers$items,ers$MRS_prop,mrs$theta_corr,ers$true), ]
 ers$cat <- cut(ers$true, 
                breaks=c(-Inf,-1.75,-1.25,-0.75,-0.25,0.25,0.75,1.25,1.75,Inf),
                labels=c(-2,-1.5,-1,-.5,0,.5,1,1.5,2))
@@ -216,13 +222,31 @@ write.xlsx(ersc2, "noncomp_Bayes_results.xlsx", sheetName="cond_ERS", col.names=
 ########################################################################################################################################################################
 ########################################################################################################################################################################
 ## SUMMARIZE ITEM PARAMETER by SUBSET
-am <- b1[which(b1$am==1), ]
-at <- b1[which(b1$at==1), ]
-ae <- b1[which(b1$ae==1), ]
 
-dm <- b1[which(b1$dm==1), ]
-dt <- b1[which(b1$dt==1), ]
-de <- b1[which(b1$de==1), ]
+am <- b1[which(str_detect(b1$V1,"a_m")), ]
+at <- b1[which(str_detect(b1$V1,"a_t")), ]
+ae <- b1[which(str_detect(b1$V1,"a_e")), ]
+
+dm <- b1[which(str_detect(b1$V1,"d_m")), ]
+dt <- b1[which(str_detect(b1$V1,"d_t")), ]
+de <- b1[which(str_detect(b1$V1,"d_e")), ]
+
+dm$mean <- dm$mean*-1
+dt$mean <- dt$mean*-1
+de$mean <- de$mean*-1
+
+dm$p025 <- dm$p025*-1; dm$p975 <- dm$p975*-1 
+dt$p025 <- dt$p025*-1; dt$p975 <- dt$p975*-1 
+de$p025 <- de$p025*-1; de$p975 <- de$p975*-1 
+
+dm$bias <- dm$mean-dm$true; dm$absbias <- abs(dm$bias)
+dm$bias2 <- dm$bias^2; dm$cov <- fifelse(dm$p025 < dm$true & dm$true < dm$p975,1,0)
+
+dt$bias <- dt$mean-dt$true; dt$absbias <- abs(dt$bias)
+dt$bias2 <- dt$bias^2; dt$cov <- fifelse(dt$p025 < dt$true & dt$true < dt$p975,1,0)
+
+de$bias <- de$mean-de$true; de$absbias <- abs(de$bias)
+de$bias2 <- de$bias^2; de$cov <- fifelse(de$p025 < de$true & de$true < de$p975,1,0)
 
 ####################################################################################
 ## MRS ITEM PARAMETER
@@ -361,3 +385,62 @@ de2 <- de2[order(de2$pers,de2$items,de2$prop,de2$corr), ]
 write.xlsx(dm2, "noncomp_Bayes_results.xlsx", sheetName="dm", col.names=T, row.names=F, append=T)
 write.xlsx(dt2, "noncomp_Bayes_results.xlsx", sheetName="dt", col.names=T, row.names=F, append=T)
 write.xlsx(de2, "noncomp_Bayes_results.xlsx", sheetName="de", col.names=T, row.names=F, append=T)
+
+####################################################################################
+## MERGE and OUTPUT ITEM PARAMETER BIAS
+
+drop <- c("se_mean","p20","p80","ESS","Rhat","mrs","toi","ers","am","at","ae","dm","dt","de","r")
+
+am <- am[,(drop):=NULL]
+at <- at[,(drop):=NULL]
+ae <- ae[,(drop):=NULL]
+dm <- dm[,(drop):=NULL]
+dt <- dt[,(drop):=NULL]
+de <- de[,(drop):=NULL]
+am <- am[order(am$pers,am$items,am$MRS_prop,am$theta_corr), ]
+at <- at[order(at$pers,at$items,at$MRS_prop,at$theta_corr), ]
+ae <- ae[order(ae$pers,ae$items,ae$MRS_prop,ae$theta_corr), ]
+dm <- dm[order(dm$pers,dm$items,dm$MRS_prop,dm$theta_corr), ]
+dt <- dt[order(dt$pers,dt$items,dt$MRS_prop,dt$theta_corr), ]
+de <- de[order(de$pers,de$items,de$MRS_prop,de$theta_corr), ]
+
+mrs <- mrs[,(drop):=NULL]
+toi <- toi[,(drop):=NULL]
+ers <- ers[,(drop):=NULL]
+mrs <- mrs[order(mrs$pers,mrs$items,mrs$MRS_prop,mrs$theta_corr), ]
+toi <- toi[order(toi$pers,toi$items,toi$MRS_prop,toi$theta_corr), ]
+ers <- ers[order(ers$pers,ers$items,ers$MRS_prop,ers$theta_corr), ]
+
+fwrite(am, "noncomp_Bayes_am_bias.csv", sep=",", col.names=T, row.names=F)
+fwrite(at, "noncomp_Bayes_at_bias.csv", sep=",", col.names=T, row.names=F)
+fwrite(ae, "noncomp_Bayes_ae_bias.csv", sep=",", col.names=T, row.names=F)
+fwrite(dm, "noncomp_Bayes_dm_bias.csv", sep=",", col.names=T, row.names=F)
+fwrite(dt, "noncomp_Bayes_dt_bias.csv", sep=",", col.names=T, row.names=F)
+fwrite(de, "noncomp_Bayes_de_bias.csv", sep=",", col.names=T, row.names=F)
+
+fwrite(mrs, "noncomp_Bayes_mrs_bias.csv", sep=",", col.names=T, row.names=F)
+fwrite(toi, "noncomp_Bayes_toi_bias.csv", sep=",", col.names=T, row.names=F)
+fwrite(ers, "noncomp_Bayes_ers_bias.csv", sep=",", col.names=T, row.names=F)
+
+
+
+
+am <- as.data.frame(am)[,!(names(am) %in% drop)]
+at <- as.data.frame(at)[,!(names(at) %in% drop)]
+ae <- as.data.frame(ae)[,!(names(ae) %in% drop)]
+dm <- as.data.frame(dm)[,!(names(dm) %in% drop)]
+dt <- as.data.frame(dt)[,!(names(dt) %in% drop)]
+de <- as.data.frame(de)[,!(names(de) %in% drop)]
+am <- am[order(am$pers,am$items,am$MRS_prop,am$theta_corr), ]
+at <- at[order(at$pers,at$items,at$MRS_prop,at$theta_corr), ]
+ae <- ae[order(ae$pers,ae$items,ae$MRS_prop,ae$theta_corr), ]
+dm <- dm[order(dm$pers,dm$items,dm$MRS_prop,dm$theta_corr), ]
+dt <- dt[order(dt$pers,dt$items,dt$MRS_prop,dt$theta_corr), ]
+de <- de[order(de$pers,de$items,de$MRS_prop,de$theta_corr), ]
+
+mrs <- as.data.frame(mrs)[,!(names(mrs) %in% drop)]
+toi <- as.data.frame(toi)[,!(names(toi) %in% drop)]
+ers <- as.data.frame(ers)[,!(names(ers) %in% drop)]
+mrs <- mrs[order(mrs$pers,mrs$items,mrs$MRS_prop,mrs$theta_corr), ]
+toi <- toi[order(toi$pers,toi$items,toi$MRS_prop,toi$theta_corr), ]
+ers <- ers[order(ers$pers,ers$items,ers$MRS_prop,ers$theta_corr), ]
