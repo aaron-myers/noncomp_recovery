@@ -5,8 +5,9 @@ rstan_options(auto_write=T)
 library(mvtnorm)
 
 setwd("C:/Users/Aaron/Dropbox/NonComp/New_10-20")
-ThreePM=stan_model(file="3PM2.stan")
+ThreePM <- stan_model(file="3PM2.stan")
 
+N <- 750; J <- 10; n <- 1; r_ <- "low"; mrs_prop <- "low"
 ##############################################################################
 ###### Simulation Function ######
 
@@ -73,22 +74,22 @@ sim_Bayes <- function(nsim, r_, mrs_prop){
         e$y_e <- as.numeric(ifelse(m$y_m==1, NA, e$y_e))
         t <- na.omit(t); e <- na.omit(e)
       
-        d1=list(D=3,
-                Jm <- max(m$mitem), Im <- max(m$mid), Nm <- max(m$mid)*max(m$mitem),
-                iim <- m$mid, jjm <- m$mitem, Ym <- m$y_m,
-                Jt <- max(t$titem), It <- max(t$tid), Nt <- nrow(t), 
-                iit <- t$tid, jjt <- t$titem, Yt <- t$y_t,
-                Je <- max(e$eitem), Ie <- max(e$eid), Ne <- nrow(e),
-                iie <- e$eid, jje <- e$eitem, Ye <- e$y_e,
-                lkj_theta <- 1, a_mu <- 0, a_sd <- 2.5, d_mu <- 0, d_sd <- 2.5)
+        d1 <- list(D=3,
+                   Jm=max(m$mitem), Im=max(m$mid), Nm=max(m$mid)*max(m$mitem),
+                   iim=m$mid, jjm=m$mitem, Ym=m$y_m,
+                   Jt=max(t$titem), It=max(t$tid), Nt=nrow(t), 
+                   iit=t$tid, jjt=t$titem, Yt=t$y_t,
+                   Je=max(e$eitem), Ie=max(e$eid), Ne=nrow(e),
+                   iie=e$eid, jje=e$eitem, Ye=e$y_e,
+                   lkj_theta=1, a_mu=0, a_sd=2.5, d_mu=0, d_sd=2.5)
 
         fit <- sampling(ThreePM,
                         seed=11,
                         data=d1,
                         chains=4,
                         cores=4,
-                        warmup=150,
-                        iter=1000,
+                        warmup=150, # 150 
+                        iter=1000,  # 1000
                         pars=c("lower_chol"),
                         include=F,
                         refresh=-1)
@@ -96,18 +97,22 @@ sim_Bayes <- function(nsim, r_, mrs_prop){
         sum <- summary(fit, pars=(c(paste0("theta[",1:N,",1]"), paste0("theta[",1:N,",2]"), paste0("theta[",1:N,",3]"),
                                     paste0("am[",1:J,"]"), paste0("at[",1:J,"]"), paste0("ae[",1:J,"]"),
                                     paste0("dm[",1:J,"]"), paste0("dt[",1:J,"]"), paste0("de[",1:J,"]"),
+                                    paste0("bm[",1:J,"]"), paste0("bt[",1:J,"]"), paste0("be[",1:J,"]"),
                                     "theta_corr[1,2]", "theta_corr[1,3]", "theta_corr[2,3]")),
                        probs=c(.025,.20,.80,.975))$summary
         rownames(sum) <- c()
         tru <- c(mrs=theta[,1], toi=theta[,2], ers=theta[,3],
                  a_m=am[1:J], a_t=at[1:J], a_e=ae[1:J],
                  d_m=bm[1:J], d_t=bt[1:J], d_e=be[1:J],
+                 b_m=bm[1:J], b_t=bt[1:J], b_e=be[1:J],
                  r_mt=r_mt, r_me=r_me, r_te=r_te)
 
         result <- data.frame(sum,tru,nsim=n,pers=N,items=J,MRS_prop=mrs_prop,theta_corr=r_,est="Bayes")
         rownames(result) <- c(paste0("mrs",1:N),paste0("toi",1:N),paste0("ers",1:N),
                               paste0("a_m",1:J),paste0("a_t",1:J),paste0("a_e",1:J),
-                              paste0("d_m",1:J),paste0("d_t",1:J),paste0("d_e",1:J),"r_mt","r_me","r_te")
+                              paste0("d_m",1:J),paste0("d_t",1:J),paste0("d_e",1:J),
+                              paste0("b_m",1:J),paste0("b_t",1:J),paste0("b_e",1:J),
+                              "r_mt","r_me","r_te")
 
         if(n==1 & J==nitems_list[1] & N==npers_list[1]){
           results <- result
@@ -131,8 +136,8 @@ sim_Bayes <- function(nsim, r_, mrs_prop){
 
 R <- "low"                  # low = .20, mod = .50 
 M_prop <- "low"             # low, mid, high
-nitems_list <- list(20)
-npers_list <- list(3000)
+nitems_list <- list(10,20)
+npers_list <- list(750,1500,3000)
 
 sim_out <- sim_Bayes(nsim=200, r_=R , mrs_prop=M_prop)
 colnames(sim_out) <- c("mean","se_mean","sd","p025","p20","p80","p975","ESS","Rhat","true","nsim","pers","items","MRS_prop","theta_corr","est")
