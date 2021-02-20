@@ -35,7 +35,7 @@ transformed data{
 
 parameters{
   vector [D] theta [Im];
-  corr_matrix[D] theta_corr;
+  cholesky_factor_corr [D] lower_chol;
 
   vector<lower=0>[Jm] am;
   vector<lower=0>[Jt] at;
@@ -46,26 +46,39 @@ parameters{
 } 
 
 model{
-    target += cauchy_lpdf(am | a_mu, a_sd);
-    target += cauchy_lpdf(at | a_mu, a_sd);
-    target += cauchy_lpdf(ae | a_mu, a_sd);
-    target += cauchy_lpdf(dm | d_mu, d_sd);
-    target += cauchy_lpdf(dt | d_mu, d_sd);
-    target += cauchy_lpdf(de | d_mu, d_sd);
+    am ~ cauchy(a_mu, a_sd);
+    at ~ cauchy(a_mu, a_sd);
+    ae ~ cauchy(a_mu, a_sd);
+    dm ~ cauchy(d_mu, d_sd);
+    dt ~ cauchy(d_mu, d_sd);
+    de ~ cauchy(d_mu, d_sd);
 
-    target += lkj_corr_lpdf(theta_corr | lkj_theta);
-    target += multi_normal_lpdf(theta | mu_theta, quad_form_diag(theta_corr, sigma_theta));
+    lower_chol ~ lkj_corr_cholesky(lkj_theta);
+    theta ~ multi_normal_cholesky(mu_theta, diag_pre_multiply(sigma_theta, lower_chol));
     
-  for(nm in 1:Nm){
-	  	target += bernoulli_logit_lpmf(Ym[nm] | am[jjm[nm]] * theta[iim[nm],1] - dm[jjm[nm]]); 
-  }
+    for(nm in 1:Nm){
+      Ym[nm] ~ bernoulli_logit(am[jjm[nm]] * theta[iim[nm],1] - dm[jjm[nm]]);
+    }
+      
+    for(nt in 1:Nt){
+      Yt[nt] ~ bernoulli_logit(at[jjt[nt]] * theta[iit[nt],2] - dt[jjt[nt]]);
+    }
+    
+    for(ne in 1:Ne){
+      Ye[ne] ~ bernoulli_logit(ae[jje[ne]] * theta[iie[ne],3] - de[jje[ne]]);
+    }
+}
+
+generated quantities{
+  corr_matrix [D] theta_corr;
+//  vector [Jm] bm;
+//  vector [Jt] bt;
+//  vector [Je] be;
   
-  for(nt in 1:Nt){
-	  	target += bernoulli_logit_lpmf(Yt[nt] | at[jjt[nt]] * theta[iit[nt],2] - dt[jjt[nt]]); 
-  }
-  
-  for(ne in 1:Ne){
-	  	target += bernoulli_logit_lpmf(Ye[ne] | ae[jje[ne]] * theta[iie[ne],3] - de[jje[ne]]); 
-  }
+  theta_corr = multiply_lower_tri_self_transpose(lower_chol);
+
+//  bm[] = -dm[]./am[];
+//  bt[] = -dt[]./at[];
+//  be[] = -de[]./ae[];
 }
 
