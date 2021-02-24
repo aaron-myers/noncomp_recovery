@@ -15,13 +15,27 @@ B_files <- list.files(pattern="*.csv", full.names=T)
 # B_list <- sapply(B_files, fread, simplify=F) 
 B_list <- lapply(B_files, fread, sep=",")
 
-# CONVERT TO DATAFRAME
+# CONVERT TO DATATABLE
 # b1 <- do.call(rbind.data.frame, B_list); row.names(b1) <- NULL
 b1 <- rbindlist(B_list, use.names=T, fill=T); row.names(b1) <- NULL
 head(b1)
 
 rm(B_files,B_list)
- 
+
+####################################################################################
+## READ TRUE INTERCEPTS  (low-corr_low-MRS_750-1500-3000_10-20_Bayes.csv)
+setwd("C:/Users/Aaron/Dropbox/NonComp/New_10-20/Output/Intercepts")
+int_files <- list.files(pattern="*.csv", full.names=T)
+int_list <- lapply(int_files, fread, sep=",")
+i1 <- rbindlist(int_list, use.names=T, fill=T); row.names(i1) <- NULL
+head(i1); colnames(i1) <- c("V1","true2","nsim","pers","items","MRS_prop","theta_corr","est")
+head(b1)
+## MERGE TRUE INTERCEPTS WITH RESULTS
+i1 <- i1[order(i1$pers,i1$items,i1$MRS_prop,i1$theta_corr,i1$nsim,i1$V1), ]
+b1 <- b1[order(b1$pers,b1$items,b1$MRS_prop,b1$theta_corr,b1$nsim,b1$V1), ]
+head(i1); head(b1)
+
+####################################################################################
 ## RECOVERY INDICES
 
 b1$bias <- b1$mean-b1$true
@@ -34,19 +48,6 @@ corr_func <- function(X){
   return(data.frame(cor=cor(X$mean, X$true)))
 }
 
-## THETA PARMS
-# b1$mrs <- ifelse(str_detect(b1$V1,"mrs"),1,0)
-# b1$toi <- ifelse(str_detect(b1$V1,"toi"),1,0)
-# b1$ers <- ifelse(str_detect(b1$V1,"ers"),1,0)
-
-## ITEM PARMS
-# b1$am <- fifelse(str_detect(b1$V1,"a_m"),1,0)
-# b1$at <- ifelse(str_detect(b1$V1,"a_t"),1,0)
-# b1$ae <- ifelse(str_detect(b1$V1,"a_e"),1,0)
-# b1$dm <- ifelse(str_detect(b1$V1,"d_m"),1,0)
-# b1$dt <- ifelse(str_detect(b1$V1,"d_t"),1,0)
-# b1$de <- ifelse(str_detect(b1$V1,"d_e"),1,0)
-
 ## CORRELATION
 # b1$r <- ifelse(str_detect(b1$V1,"r_m"),1,0)
 
@@ -55,10 +56,6 @@ corr_func <- function(X){
 mrs <- b1[which(str_detect(b1$V1,"mrs")), ]
 toi <- b1[which(str_detect(b1$V1,"toi")), ]
 ers <- b1[which(str_detect(b1$V1,"ers")), ]
-
-# mrs <- b1[which(b1$mrs==1), ]
-# toi <- b1[which(b1$toi==1), ]
-# ers <- b1[which(b1$ers==1), ]
 
 ########################################################################################################################################################################
 #####  UNCONDITIONAL THETA  ############################################################################################################################################
@@ -231,22 +228,69 @@ dm <- b1[which(str_detect(b1$V1,"d_m")), ]
 dt <- b1[which(str_detect(b1$V1,"d_t")), ]
 de <- b1[which(str_detect(b1$V1,"d_e")), ]
 
-dm$mean <- dm$mean*-1
-dt$mean <- dt$mean*-1
-de$mean <- de$mean*-1
+dm_t <- i1[which(str_detect(i1$V1,"d_m")), ]; colnames(dm_t) <- c("V1","true_d","nsim","pers","items","MRS_prop","theta_corr","est")
+dt_t <- i1[which(str_detect(i1$V1,"d_t")), ]; colnames(dt_t) <- c("V1","true_d","nsim","pers","items","MRS_prop","theta_corr","est")
+de_t <- i1[which(str_detect(i1$V1,"d_e")), ]; colnames(de_t) <- c("V1","true_d","nsim","pers","items","MRS_prop","theta_corr","est")
 
-dm$p025 <- dm$p025*-1; dm$p975 <- dm$p975*-1 
-dt$p025 <- dt$p025*-1; dt$p975 <- dt$p975*-1 
-de$p025 <- de$p025*-1; de$p975 <- de$p975*-1 
+bm_t <- i1[which(str_detect(i1$V1,"b_m")), ]; colnames(bm_t) <- c("V1","true_b","nsim","pers","items","MRS_prop","theta_corr","est")
+bt_t <- i1[which(str_detect(i1$V1,"b_t")), ]; colnames(bt_t) <- c("V1","true_b","nsim","pers","items","MRS_prop","theta_corr","est")
+be_t <- i1[which(str_detect(i1$V1,"b_e")), ]; colnames(be_t) <- c("V1","true_b","nsim","pers","items","MRS_prop","theta_corr","est")
 
-dm$bias <- dm$mean-dm$true; dm$absbias <- abs(dm$bias)
-dm$bias2 <- dm$bias^2; dm$cov <- fifelse(dm$p025 < dm$true & dm$true < dm$p975,1,0)
+dm_t <- cbind(dm_t,bm_t)
+dt_t <- cbind(dt_t,bt_t)
+de_t <- cbind(de_t,be_t)
 
-dt$bias <- dt$mean-dt$true; dt$absbias <- abs(dt$bias)
-dt$bias2 <- dt$bias^2; dt$cov <- fifelse(dt$p025 < dt$true & dt$true < dt$p975,1,0)
+dm <- dm[order(dm$pers,dm$items,dm$MRS_prop,dm$theta_corr,dm$nsim,dm$true), ]
+dt <- dt[order(dt$pers,dt$items,dt$MRS_prop,dt$theta_corr,dt$nsim,dt$true), ]
+de <- de[order(de$pers,de$items,de$MRS_prop,de$theta_corr,de$nsim,de$true), ]
 
-de$bias <- de$mean-de$true; de$absbias <- abs(de$bias)
-de$bias2 <- de$bias^2; de$cov <- fifelse(de$p025 < de$true & de$true < de$p975,1,0)
+dm_t <- dm_t[order(dm_t$pers,dm_t$items,dm_t$MRS_prop,dm_t$theta_corr,dm_t$nsim,dm_t$true_b), ]
+dt_t <- dt_t[order(dt_t$pers,dt_t$items,dt_t$MRS_prop,dt_t$theta_corr,dt_t$nsim,dt_t$true_b), ]
+de_t <- de_t[order(de_t$pers,de_t$items,de_t$MRS_prop,de_t$theta_corr,de_t$nsim,de_t$true_b), ]
+
+## VERIFYING CORRECT MERGER
+head(dm); head(dm_t)
+tail(dm); tail(dm_t)
+dm <- cbind(dm,dm_t[,c("true_d","true_b")])
+diff <- dm$true-dm$true_b
+max(diff); min(diff); mean(diff)
+
+dt <- cbind(dt,dt_t[,c("true_d","true_b")])
+diff <- dt$true-dt$true_b
+max(diff); min(diff); mean(diff)
+
+de <- cbind(de,de_t[,c("true_d","true_b")])
+diff <- de$true-de$true_b
+max(diff); min(diff); mean(diff)
+
+## READING INDICATORS FOR REVERSE CODING (OOPS!!!)
+
+r1 <- read.xlsx("noncomp_Bayes_results.xlsx",sheetName="reverse"); colnames(r1) <- c("pers","items","MRS_prop","theta_corr","rev")
+dm <- merge(dm, r1, all.x=T, by=c("pers","items","MRS_prop","theta_corr"))
+dt <- merge(dt, r1, all.x=T, by=c("pers","items","MRS_prop","theta_corr"))
+de <- merge(de, r1, all.x=T, by=c("pers","items","MRS_prop","theta_corr"))
+
+dm$mean <- ifelse(dm$rev==1,dm$mean*-1,dm$mean)
+dt$mean <- ifelse(dt$rev==1,dt$mean*-1,dt$mean)
+de$mean <- ifelse(de$rev==1,de$mean*-1,de$mean)
+
+dm$lower <- ifelse(dm$rev==1,dm$p975*-1,dm$p025)
+dt$lower <- ifelse(dt$rev==1,dt$p975*-1,dt$p025)
+de$lower <- ifelse(de$rev==1,de$p975*-1,de$p025)
+
+dm$upper <- ifelse(dm$rev==1,dm$p025*-1,dm$p975)
+dt$upper <- ifelse(dt$rev==1,dt$p025*-1,dt$p975)
+de$upper <- ifelse(de$rev==1,de$p025*-1,de$p975)
+
+
+dm$bias <- dm$mean-dm$true_d; dm$absbias <- abs(dm$bias)
+dm$bias2 <- dm$bias^2; dm$cov <- fifelse(dm$lower < dm$true_d & dm$true_d < dm$upper,1,0)
+
+dt$bias <- dt$mean-dt$true_d; dt$absbias <- abs(dt$bias)
+dt$bias2 <- dt$bias^2; dt$cov <- fifelse(dt$lower < dt$true_d & dt$true_d < dt$upper,1,0)
+
+de$bias <- de$mean-de$true_d; de$absbias <- abs(de$bias)
+de$bias2 <- de$bias^2; de$cov <- fifelse(de$lower < de$true_d & de$true_d < de$upper,1,0)
 
 ####################################################################################
 ## MRS ITEM PARAMETER
@@ -422,25 +466,177 @@ fwrite(mrs, "noncomp_Bayes_mrs_bias.csv", sep=",", col.names=T, row.names=F)
 fwrite(toi, "noncomp_Bayes_toi_bias.csv", sep=",", col.names=T, row.names=F)
 fwrite(ers, "noncomp_Bayes_ers_bias.csv", sep=",", col.names=T, row.names=F)
 
+# am <- as.data.frame(am)[,!(names(am) %in% drop)]
+# at <- as.data.frame(at)[,!(names(at) %in% drop)]
+# ae <- as.data.frame(ae)[,!(names(ae) %in% drop)]
+# dm <- as.data.frame(dm)[,!(names(dm) %in% drop)]
+# dt <- as.data.frame(dt)[,!(names(dt) %in% drop)]
+# de <- as.data.frame(de)[,!(names(de) %in% drop)]
+# am <- am[order(am$pers,am$items,am$MRS_prop,am$theta_corr), ]
+# at <- at[order(at$pers,at$items,at$MRS_prop,at$theta_corr), ]
+# ae <- ae[order(ae$pers,ae$items,ae$MRS_prop,ae$theta_corr), ]
+# dm <- dm[order(dm$pers,dm$items,dm$MRS_prop,dm$theta_corr), ]
+# dt <- dt[order(dt$pers,dt$items,dt$MRS_prop,dt$theta_corr), ]
+# de <- de[order(de$pers,de$items,de$MRS_prop,de$theta_corr), ]
+# 
+# mrs <- as.data.frame(mrs)[,!(names(mrs) %in% drop)]
+# toi <- as.data.frame(toi)[,!(names(toi) %in% drop)]
+# ers <- as.data.frame(ers)[,!(names(ers) %in% drop)]
+# mrs <- mrs[order(mrs$pers,mrs$items,mrs$MRS_prop,mrs$theta_corr), ]
+# toi <- toi[order(toi$pers,toi$items,toi$MRS_prop,toi$theta_corr), ]
+# ers <- ers[order(ers$pers,ers$items,ers$MRS_prop,ers$theta_corr), ]
 
+####################################################################################
+####################################################################################
+## ITEM CATEGORY
+head(am)
 
+min(am$true); max(am$true)
+min(at$true); max(at$true)
+min(ae$true); max(ae$true)
 
-am <- as.data.frame(am)[,!(names(am) %in% drop)]
-at <- as.data.frame(at)[,!(names(at) %in% drop)]
-ae <- as.data.frame(ae)[,!(names(ae) %in% drop)]
-dm <- as.data.frame(dm)[,!(names(dm) %in% drop)]
-dt <- as.data.frame(dt)[,!(names(dt) %in% drop)]
-de <- as.data.frame(de)[,!(names(de) %in% drop)]
-am <- am[order(am$pers,am$items,am$MRS_prop,am$theta_corr), ]
-at <- at[order(at$pers,at$items,at$MRS_prop,at$theta_corr), ]
-ae <- ae[order(ae$pers,ae$items,ae$MRS_prop,ae$theta_corr), ]
-dm <- dm[order(dm$pers,dm$items,dm$MRS_prop,dm$theta_corr), ]
-dt <- dt[order(dt$pers,dt$items,dt$MRS_prop,dt$theta_corr), ]
-de <- de[order(de$pers,de$items,de$MRS_prop,de$theta_corr), ]
+am$cat <- cut(am$true, 
+              breaks=c(0.50,1.00,1.50,2.00,2.50,3.00),
+              labels=c( 0.75, 1.25, 1.75,2.25,2.75))
+at$cat <- cut(at$true, 
+              breaks=c(0.50,1.00,1.50,2.00,2.50,3.00),
+              labels=c( 0.75, 1.25, 1.75,2.25,2.75))
+ae$cat <- cut(ae$true, 
+              breaks=c(0.50,1.00,1.50,2.00,2.50,3.00),
+              labels=c( 0.75, 1.25, 1.75,2.25,2.75))
 
-mrs <- as.data.frame(mrs)[,!(names(mrs) %in% drop)]
-toi <- as.data.frame(toi)[,!(names(toi) %in% drop)]
-ers <- as.data.frame(ers)[,!(names(ers) %in% drop)]
-mrs <- mrs[order(mrs$pers,mrs$items,mrs$MRS_prop,mrs$theta_corr), ]
-toi <- toi[order(toi$pers,toi$items,toi$MRS_prop,toi$theta_corr), ]
-ers <- ers[order(ers$pers,ers$items,ers$MRS_prop,ers$theta_corr), ]
+min(dm$true); max(dm$true); hist(dm$true)
+min(dt$true); max(dt$true); hist(dt$true)
+min(de$true); max(de$true); hist(de$true)
+
+dm$cat <- cut(dm$true, 
+              breaks=c(-.50, 0.00, 0.50, 1.00, 1.50, 2.00, Inf),
+              labels=c( -0.25,  0.25, 0.75, 1.25, 1.75, 2.25))
+dt$cat <- cut(dt$true, 
+              breaks=c(-2.50, -1.50, -0.75, -0.25, 0.25, 0.75, 1.50, 2.50),
+              labels=c(   -2.00, -1.25, -0.50,  0.00, 0.50, 1.25, 2.00))
+de$cat <- cut(de$true, 
+              breaks=c(-2.50, -1.50, -0.75, -0.25, 0.25, 0.75, 1.50, 2.50),
+              labels=c(   -2.00, -1.25, -0.50,  0.00, 0.50, 1.25, 2.00))
+
+####################################################################################
+## MRS ITEM PARAMETERS
+## DISCRIMINATION
+amc_avgbias <- aggregate.data.frame(am$bias, by=list(am$pers,am$items,am$MRS_prop,am$theta_corr,am$cat), 
+                                    FUN=mean); colnames(amc_avgbias) <- c("pers","items","MRS_prop","theta_corr","cat","avgbias")
+amc_avgabsbias <- aggregate.data.frame(am$absbias, by=list(am$pers,am$items,am$MRS_prop,am$theta_corr,am$cat), 
+                                       FUN=mean); colnames(amc_avgabsbias) <- c("pers","items","MRS_prop","theta_corr","cat","avgabsbias")
+amc_avgbias2 <- aggregate.data.frame(am$bias2, by=list(am$pers,am$items,am$MRS_prop,am$theta_corr,am$cat), 
+                                     FUN=mean); colnames(amc_avgbias2) <- c("pers","items","MRS_prop","theta_corr","cat","avgbias2")
+amc_cov <- aggregate.data.frame(am$cov, by=list(am$pers,am$items,am$MRS_prop,am$theta_corr,am$cat), 
+                                FUN=mean); colnames(amc_cov) <- c("pers","items","MRS_prop","theta_corr","cat","cov")
+amc_se <- aggregate.data.frame(am$mean, by=list(am$pers,am$items,am$MRS_prop,am$theta_corr,am$cat), 
+                               FUN=sd); colnames(amc_se) <- c("pers","items","MRS_prop","theta_corr","cat","se")
+
+amc2 <- merge(amc_avgbias, amc_avgabsbias, by=c("pers","items","MRS_prop","theta_corr","cat")); 
+amc2 <- merge(amc2, amc_avgbias2, by=c("pers","items","MRS_prop","theta_corr","cat")); amc2$rmse <- amc2$avgbias2^.5
+amc2 <- merge(amc2, amc_cov, by=c("pers","items","MRS_prop","theta_corr","cat"))
+amc2 <- merge(amc2, amc_se, by=c("pers","items","MRS_prop","theta_corr","cat"))
+
+## INTERCEPT
+dmc_avgbias <- aggregate.data.frame(dm$bias, by=list(dm$pers,dm$items,dm$MRS_prop,dm$theta_corr,dm$cat), 
+                                    FUN=mean); colnames(dmc_avgbias) <- c("pers","items","MRS_prop","theta_corr","cat","avgbias")
+dmc_avgabsbias <- aggregate.data.frame(dm$absbias, by=list(dm$pers,dm$items,dm$MRS_prop,dm$theta_corr,dm$cat), 
+                                       FUN=mean); colnames(dmc_avgabsbias) <- c("pers","items","MRS_prop","theta_corr","cat","avgabsbias")
+dmc_avgbias2 <- aggregate.data.frame(dm$bias2, by=list(dm$pers,dm$items,dm$MRS_prop,dm$theta_corr,dm$cat), 
+                                     FUN=mean); colnames(dmc_avgbias2) <- c("pers","items","MRS_prop","theta_corr","cat","avgbias2")
+dmc_cov <- aggregate.data.frame(dm$cov, by=list(dm$pers,dm$items,dm$MRS_prop,dm$theta_corr,dm$cat), 
+                                FUN=mean); colnames(dmc_cov) <- c("pers","items","MRS_prop","theta_corr","cat","cov")
+dmc_se <- aggregate.data.frame(dm$mean, by=list(dm$pers,dm$items,dm$MRS_prop,dm$theta_corr,dm$cat), 
+                               FUN=sd); colnames(dmc_se) <- c("pers","items","MRS_prop","theta_corr","cat","se")
+
+dmc2 <- merge(dmc_avgbias, dmc_avgabsbias, by=c("pers","items","MRS_prop","theta_corr","cat")); 
+dmc2 <- merge(dmc2, dmc_avgbias2, by=c("pers","items","MRS_prop","theta_corr","cat")); dmc2$rmse <- dmc2$avgbias2^.5
+dmc2 <- merge(dmc2, dmc_cov, by=c("pers","items","MRS_prop","theta_corr","cat"))
+dmc2 <- merge(dmc2, dmc_se, by=c("pers","items","MRS_prop","theta_corr","cat"))
+
+## TOI ITEM PARAMETERS
+atc_avgbias <- aggregate.data.frame(at$bias, by=list(at$pers,at$items,at$MRS_prop,at$theta_corr,at$cat), 
+                                    FUN=mean); colnames(atc_avgbias) <- c("pers","items","MRS_prop","theta_corr","cat","avgbias")
+atc_avgabsbias <- aggregate.data.frame(at$absbias, by=list(at$pers,at$items,at$MRS_prop,at$theta_corr,at$cat), 
+                                       FUN=mean); colnames(atc_avgabsbias) <- c("pers","items","MRS_prop","theta_corr","cat","avgabsbias")
+atc_avgbias2 <- aggregate.data.frame(at$bias2, by=list(at$pers,at$items,at$MRS_prop,at$theta_corr,at$cat), 
+                                     FUN=mean); colnames(atc_avgbias2) <- c("pers","items","MRS_prop","theta_corr","cat","avgbias2")
+atc_cov <- aggregate.data.frame(at$cov, by=list(at$pers,at$items,at$MRS_prop,at$theta_corr,at$cat), 
+                                FUN=mean); colnames(atc_cov) <- c("pers","items","MRS_prop","theta_corr","cat","cov")
+atc_se <- aggregate.data.frame(at$mean, by=list(at$pers,at$items,at$MRS_prop,at$theta_corr,at$cat), 
+                               FUN=sd); colnames(atc_se) <- c("pers","items","MRS_prop","theta_corr","cat","se")
+
+atc2 <- merge(atc_avgbias, atc_avgabsbias, by=c("pers","items","MRS_prop","theta_corr","cat")); 
+atc2 <- merge(atc2, atc_avgbias2, by=c("pers","items","MRS_prop","theta_corr","cat")); atc2$rmse <- atc2$avgbias2^.5
+atc2 <- merge(atc2, atc_cov, by=c("pers","items","MRS_prop","theta_corr","cat"))
+atc2 <- merge(atc2, atc_se, by=c("pers","items","MRS_prop","theta_corr","cat"))
+
+## INTERCEPT
+dtc_avgbias <- aggregate.data.frame(dt$bias, by=list(dt$pers,dt$items,dt$MRS_prop,dt$theta_corr,dt$cat), 
+                                    FUN=mean); colnames(dtc_avgbias) <- c("pers","items","MRS_prop","theta_corr","cat","avgbias")
+dtc_avgabsbias <- aggregate.data.frame(dt$absbias, by=list(dt$pers,dt$items,dt$MRS_prop,dt$theta_corr,dt$cat), 
+                                       FUN=mean); colnames(dtc_avgabsbias) <- c("pers","items","MRS_prop","theta_corr","cat","avgabsbias")
+dtc_avgbias2 <- aggregate.data.frame(dt$bias2, by=list(dt$pers,dt$items,dt$MRS_prop,dt$theta_corr,dt$cat), 
+                                     FUN=mean); colnames(dtc_avgbias2) <- c("pers","items","MRS_prop","theta_corr","cat","avgbias2")
+dtc_cov <- aggregate.data.frame(dt$cov, by=list(dt$pers,dt$items,dt$MRS_prop,dt$theta_corr,dt$cat), 
+                                FUN=mean); colnames(dtc_cov) <- c("pers","items","MRS_prop","theta_corr","cat","cov")
+dtc_se <- aggregate.data.frame(dt$mean, by=list(dt$pers,dt$items,dt$MRS_prop,dt$theta_corr,dt$cat), 
+                               FUN=sd); colnames(dtc_se) <- c("pers","items","MRS_prop","theta_corr","cat","se")
+
+dtc2 <- merge(dtc_avgbias, dtc_avgabsbias, by=c("pers","items","MRS_prop","theta_corr","cat")); 
+dtc2 <- merge(dtc2, dtc_avgbias2, by=c("pers","items","MRS_prop","theta_corr","cat")); dtc2$rmse <- dtc2$avgbias2^.5
+dtc2 <- merge(dtc2, dtc_cov, by=c("pers","items","MRS_prop","theta_corr","cat"))
+dtc2 <- merge(dtc2, dtc_se, by=c("pers","items","MRS_prop","theta_corr","cat"))
+
+## ERS ITEM PARAMETERS
+aec_avgbias <- aggregate.data.frame(ae$bias, by=list(ae$pers,ae$items,ae$MRS_prop,ae$theta_corr,ae$cat), 
+                                    FUN=mean); colnames(aec_avgbias) <- c("pers","items","MRS_prop","theta_corr","cat","avgbias")
+aec_avgabsbias <- aggregate.data.frame(ae$absbias, by=list(ae$pers,ae$items,ae$MRS_prop,ae$theta_corr,ae$cat), 
+                                       FUN=mean); colnames(aec_avgabsbias) <- c("pers","items","MRS_prop","theta_corr","cat","avgabsbias")
+aec_avgbias2 <- aggregate.data.frame(ae$bias2, by=list(ae$pers,ae$items,ae$MRS_prop,ae$theta_corr,ae$cat), 
+                                     FUN=mean); colnames(aec_avgbias2) <- c("pers","items","MRS_prop","theta_corr","cat","avgbias2")
+aec_cov <- aggregate.data.frame(ae$cov, by=list(ae$pers,ae$items,ae$MRS_prop,ae$theta_corr,ae$cat), 
+                                FUN=mean); colnames(aec_cov) <- c("pers","items","MRS_prop","theta_corr","cat","cov")
+aec_se <- aggregate.data.frame(ae$mean, by=list(ae$pers,ae$items,ae$MRS_prop,ae$theta_corr,ae$cat), 
+                               FUN=sd); colnames(aec_se) <- c("pers","items","MRS_prop","theta_corr","cat","se")
+
+aec2 <- merge(aec_avgbias, aec_avgabsbias, by=c("pers","items","MRS_prop","theta_corr","cat")); 
+aec2 <- merge(aec2, aec_avgbias2, by=c("pers","items","MRS_prop","theta_corr","cat")); aec2$rmse <- aec2$avgbias2^.5
+aec2 <- merge(aec2, aec_cov, by=c("pers","items","MRS_prop","theta_corr","cat"))
+aec2 <- merge(aec2, aec_se, by=c("pers","items","MRS_prop","theta_corr","cat"))
+
+## INTERCEPT
+dec_avgbias <- aggregate.data.frame(de$bias, by=list(de$pers,de$items,de$MRS_prop,de$theta_corr,de$cat), 
+                                    FUN=mean); colnames(dec_avgbias) <- c("pers","items","MRS_prop","theta_corr","cat","avgbias")
+dec_avgabsbias <- aggregate.data.frame(de$absbias, by=list(de$pers,de$items,de$MRS_prop,de$theta_corr,de$cat), 
+                                       FUN=mean); colnames(dec_avgabsbias) <- c("pers","items","MRS_prop","theta_corr","cat","avgabsbias")
+dec_avgbias2 <- aggregate.data.frame(de$bias2, by=list(de$pers,de$items,de$MRS_prop,de$theta_corr,de$cat), 
+                                     FUN=mean); colnames(dec_avgbias2) <- c("pers","items","MRS_prop","theta_corr","cat","avgbias2")
+dec_cov <- aggregate.data.frame(de$cov, by=list(de$pers,de$items,de$MRS_prop,de$theta_corr,de$cat), 
+                                FUN=mean); colnames(dec_cov) <- c("pers","items","MRS_prop","theta_corr","cat","cov")
+dec_se <- aggregate.data.frame(de$mean, by=list(de$pers,de$items,de$MRS_prop,de$theta_corr,de$cat), 
+                               FUN=sd); colnames(dec_se) <- c("pers","items","MRS_prop","theta_corr","cat","se")
+
+dec2 <- merge(dec_avgbias, dec_avgabsbias, by=c("pers","items","MRS_prop","theta_corr","cat")); 
+dec2 <- merge(dec2, dec_avgbias2, by=c("pers","items","MRS_prop","theta_corr","cat")); dec2$rmse <- dec2$avgbias2^.5
+dec2 <- merge(dec2, dec_cov, by=c("pers","items","MRS_prop","theta_corr","cat"))
+dec2 <- merge(dec2, dec_se, by=c("pers","items","MRS_prop","theta_corr","cat"))
+
+####################################################################################
+## OUTPUT CONDITIONAL ITEM PARAMETER RESULTS
+amc2 <- amc2[order(amc2$pers,amc2$items,amc2$MRS_prop,amc2$theta_corr,amc2$cat), ]
+atc2 <- atc2[order(atc2$pers,atc2$items,atc2$MRS_prop,atc2$theta_corr,atc2$cat), ]
+aec2 <- aec2[order(aec2$pers,aec2$items,aec2$MRS_prop,aec2$theta_corr,aec2$cat), ]
+
+dmc2 <- dmc2[order(dmc2$pers,dmc2$items,dmc2$MRS_prop,dmc2$theta_corr,dmc2$cat), ]
+dtc2 <- dtc2[order(dtc2$pers,dtc2$items,dtc2$MRS_prop,dtc2$theta_corr,dtc2$cat), ]
+dec2 <- dec2[order(dec2$pers,dec2$items,dec2$MRS_prop,dec2$theta_corr,dec2$cat), ]
+
+write.xlsx(amc2, "noncomp_Bayes_results.xlsx", sheetName="cond_am", col.names=T, row.names=F, append=T)
+write.xlsx(atc2, "noncomp_Bayes_results.xlsx", sheetName="cond_at", col.names=T, row.names=F, append=T)
+write.xlsx(aec2, "noncomp_Bayes_results.xlsx", sheetName="cond_ae", col.names=T, row.names=F, append=T)
+
+write.xlsx(dmc2, "noncomp_Bayes_results.xlsx", sheetName="cond_dm", col.names=T, row.names=F, append=T)
+write.xlsx(dtc2, "noncomp_Bayes_results.xlsx", sheetName="cond_dt", col.names=T, row.names=F, append=T)
+write.xlsx(dec2, "noncomp_Bayes_results.xlsx", sheetName="cond_de", col.names=T, row.names=F, append=T)
